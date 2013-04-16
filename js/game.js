@@ -9,9 +9,13 @@ var x = 150;
 var y = 150;
 var dx = 2;
 var dy = 4;
-var playerRadius = 10;
+var playerRadius = 100;
 
+//Frame array
 var imgObj;
+var frameCount = 24;
+var currentFrame;
+
 var imgBackdrop1;
 var imgBackdrop2;
 var backdropY1;
@@ -59,8 +63,17 @@ function init() {
 	varLevel = 0;
 	updatePlatforms();
 	
-	imgObj = new Image();
-	imgObj.src = 'http://www.html5canvastutorials.com/demos/assets/darth-vader.jpg';
+	imgObj = new Array();
+	
+	for( var curFrame = 1; curFrame <= frameCount; curFrame += 1 ) {
+		imgObj[curFrame] = new Image();
+		if(curFrame < 10) {
+			imgObj[curFrame].src = 'img/right/000' + curFrame + '.png';
+		} else {
+			imgObj[curFrame].src = 'img/right/00' + curFrame + '.png';
+		}
+	}
+	currentFrame = 1;
 	
 	imgBackdrop1 = new Image();
 	imgBackdrop1.src = 'img/backdrop.jpg';
@@ -83,8 +96,13 @@ function draw() {
 	ctx.drawImage(imgBackdrop1, 0, backdropY1);
 	ctx.drawImage(imgBackdrop2, 0, backdropY2);
 	
-	ctx.drawImage(imgObj, x, y, playerRadius, playerRadius);
+	ctx.drawImage(imgObj[Math.round(currentFrame)], x, y, playerRadius, playerRadius);
 	
+	//Update animation frame
+	if(currentFrame < frameCount) {
+		currentFrame += 0.15;
+	}
+
 	ctx.fillStyle = "#00A308";
 	ctx.beginPath();
 	//ctx.fillRect(x, y, playerRadius, playerRadius);
@@ -100,22 +118,16 @@ function draw() {
 	
 	//Collisions against platforms
 	for(var i = 0; i < platforms.length; i++) {
-		if(Math.abs((x + playerRadius/2) - (platforms[i].x + platforms[i].platformwidth/2)) < (platforms[i].platformwidth/2 + playerRadius/2) && Math.abs(y - platforms[i].y) < platformHeight && dy > 0) {
+		if(Math.abs((x + playerRadius/2) - (platforms[i].x + platforms[i].platformwidth/2)) < (platforms[i].platformwidth/2 + playerRadius / 8) && Math.abs(y - (platforms[i].y - platformHeight * 3)) < platformHeight && dy > 0) {			
 			dy = -8;
+			currentFrame = 1;
 		}
 	}
 	
 	//x += dx;
 	y += dy;
 	
-	dy += 0.1;
-	
-	if(x > width) {
-		x = 0;
-	} else if(x < 0) {
-		x = width;
-	}
-	
+	dy += 0.1;	
 	
 	//If the player goes above 1/2 screen, move all of the pieces down
 	if(y < height / 2) {
@@ -146,7 +158,13 @@ function draw() {
 
 function trackPosition(e) {
 	mouse = getMousePos(canvas, e);
-	x = mouse.x;
+	x = mouse.x - playerRadius/2;
+		
+	if(x > width - playerRadius) {
+		x = width - playerRadius;
+	} else if(x < 0) {
+		x = 0;
+	}
 }
 function getMousePos(canvas, event) {
 	var rect = canvas.getBoundingClientRect();
