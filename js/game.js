@@ -43,6 +43,10 @@ var floorY;
 
 var platformBaseWidth = 140;
 var platformMinimumWidth = 40;
+
+var rays;
+var rayWidth;
+var rayLength;
 // ----------------------------------------
 
 window.onload = function () {
@@ -91,6 +95,10 @@ function init() {
 	
 	imgCloud = new Image();
 	imgCloud.src = 'img/cloud.png';
+	
+	rays = [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2];
+	rayWidth = 0.1;
+	rayLength = height * 2;
 }
 
 function reinit() {
@@ -126,7 +134,22 @@ function draw() {
 			currentFrame = frameCount;
 		}
 	}
-
+	
+	//Draw light rays
+	ctx.fillStyle = "rgba(255,255,100,0.1)";
+	for(var currentRay = 0; currentRay < rays.length; currentRay += 1) {
+		ctx.beginPath();
+		ctx.moveTo(width / 2, -height/3);
+		ctx.lineTo((Math.sin(rays[currentRay] - rayWidth) * rayLength) + width / 2, Math.cos(rays[currentRay] - rayWidth) * rayLength);
+		ctx.lineTo((Math.sin(rays[currentRay] + rayWidth) * rayLength) + width / 2, Math.cos(rays[currentRay] + rayWidth) * rayLength);
+		ctx.closePath();
+		ctx.fill();
+		rays[currentRay] += 0.001;
+		if(rays[currentRay] > 2) {
+			rays[currentRay] -= 4.5;
+		}
+	}
+	
 	//Draw the platforms
 	for(var i = 0; i < platforms.length; i++) {
 		ctx.beginPath();
@@ -177,7 +200,7 @@ function draw() {
 			}
 		}
 	}
-	
+
 	grad = ctx.createLinearGradient(0, 0, 0, 40);
 	grad.addColorStop(0, "#333");
 	grad.addColorStop(1, "#111");
