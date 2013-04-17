@@ -52,12 +52,79 @@ var rayLength;
 var flgDead;
 var resetAlpha;
 var deathTextAlpha;
+var resetTimer;
 
+var assetManager = new AssetManager();
 // ----------------------------------------
 
+function AssetManager() {
+    this.successCount = 0;
+    this.errorCount = 0;
+    this.cache = {};
+    this.downloadQueue = [];
+}
+AssetManager.prototype.queueDownload = function(path) {
+    this.downloadQueue.push(path);
+}
+
+AssetManager.prototype.downloadAll = function(downloadCallback) {
+    if (this.downloadQueue.length === 0) {
+        downloadCallback();
+    }
+    
+    for (var i = 0; i < this.downloadQueue.length; i++) {
+        var path = this.downloadQueue[i];
+        var img = new Image();
+        var that = this;
+        img.addEventListener("load", function() {
+            console.log(this.src + ' is loaded');
+            that.successCount += 1;
+            if (that.isDone()) {
+                downloadCallback();
+            }
+        }, false);
+        img.addEventListener("error", function() {
+            that.errorCount += 1;
+            if (that.isDone()) {
+                downloadCallback();
+            }
+        }, false);
+        img.src = path;
+        this.cache[path] = img;
+    }
+}
+
+AssetManager.prototype.getAsset = function(path) {
+    return this.cache[path];
+}
+
+AssetManager.prototype.isDone = function() {
+    return ((this.downloadQueue.length) == this.successCount + this.errorCount);
+}
+
 window.onload = function () {
-	init();
-	setInterval(draw, 1);
+	for( var curFrame = 1; curFrame <= frameCount; curFrame += 1 ) {
+		if(curFrame < 10) {
+			assetManager.queueDownload('img/right/000' + curFrame + '.png');
+		} else {
+			assetManager.queueDownload('img/right/00' + curFrame + '.png');
+		}
+	}
+	for( var curFrame = 1; curFrame <= frameCount; curFrame += 1 ) {
+		if(curFrame < 10) {
+			assetManager.queueDownload('img/left/000' + curFrame + '.png');
+		} else {
+			assetManager.queueDownload('img/left/00' + curFrame + '.png');
+		}
+	}
+	assetManager.queueDownload('img/backdrop.png');
+	assetManager.queueDownload('img/floor.png');
+	assetManager.queueDownload('img/cloud.png');
+	
+	assetManager.downloadAll(function () {
+		init();
+		setInterval(draw, 6);
+	})
 };
 
 function init() {
@@ -83,9 +150,9 @@ function init() {
 	for( var curFrame = 1; curFrame <= frameCount; curFrame += 1 ) {
 		framesRight[curFrame] = new Image();
 		if(curFrame < 10) {
-			framesRight[curFrame].src = 'img/right/000' + curFrame + '.png';
+			framesRight[curFrame] = assetManager.getAsset('img/right/000' + curFrame + '.png');
 		} else {
-			framesRight[curFrame].src = 'img/right/00' + curFrame + '.png';
+			framesRight[curFrame] = assetManager.getAsset('img/right/00' + curFrame + '.png');
 		}
 	}
 	for( var curFrame = 1; curFrame <= frameCount; curFrame += 1 ) {
@@ -98,16 +165,13 @@ function init() {
 	}
 	currentFrame = 1;
 	
-	imgBackdrop1 = new Image();
-	imgBackdrop1.src = 'img/backdrop.png';
+	imgBackdrop1 = assetManager.getAsset('img/backdrop.png');
 	backdropY1 = height;
 	backdropY2 = 0;
 	
-	imgFloor = new Image();
-	imgFloor.src = 'img/floor.png';
+	imgFloor = assetManager.getAsset('img/floor.png');
 	
-	imgCloud = new Image();
-	imgCloud.src = 'img/cloud.png';
+	imgCloud = assetManager.getAsset('img/cloud.png');
 	
 	rays = [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2];
 	rayWidth = 0.1;
@@ -117,6 +181,7 @@ function init() {
 	resetAlpha = 0;
 	deathTextAlpha = 0;
 	facingRight = true;
+	resetTimer = 0;
 }
 
 function reinit() {
@@ -133,6 +198,7 @@ function reinit() {
 	y = floorY;
 	
 	dy = 0;
+	resetTimer = 0;
 }
 
 function updatePlatforms() {
@@ -166,7 +232,7 @@ function draw() {
 	
 	//Update animation frame
 	if(currentFrame < frameCount) {
-		currentFrame += 0.14;
+		currentFrame += 0.15;
 		if(currentFrame > frameCount) {
 			currentFrame = frameCount;
 		}
@@ -214,6 +280,7 @@ function draw() {
 	}
 	if(flgDead) {
 		deathTextAlpha += 0.01;
+		resetTimer += 0.01;
 	}
 	dy += 0.1;	
 	
