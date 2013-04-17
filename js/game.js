@@ -12,12 +12,13 @@ var dy = 4;
 var playerRadius = 150;
 
 //Frame array
-var imgObj;
+var framesRight;
+var framesLeft;
 var frameCount = 24;
 var currentFrame;
+var facingRight;
 
 var imgBackdrop1;
-var imgBackdrop2;
 var backdropY1;
 var backdropY2;
 
@@ -47,6 +48,11 @@ var platformMinimumWidth = 40;
 var rays;
 var rayWidth;
 var rayLength;
+
+var flgDead;
+var resetAlpha;
+var deathTextAlpha;
+
 // ----------------------------------------
 
 window.onload = function () {
@@ -59,6 +65,7 @@ function init() {
     ctx = canvas.getContext("2d");
 	
     canvas.addEventListener("mousemove", trackPosition, true);
+	canvas.addEventListener("mousedown", handleClick, true);
 	width = canvas.width;
 	height = canvas.height;
 	
@@ -70,25 +77,31 @@ function init() {
 	varLevel = 0;
 	updatePlatforms();
 	
-	imgObj = new Array();
+	framesRight = new Array();
+	framesLeft = new Array();
 	
 	for( var curFrame = 1; curFrame <= frameCount; curFrame += 1 ) {
-		imgObj[curFrame] = new Image();
+		framesRight[curFrame] = new Image();
 		if(curFrame < 10) {
-			imgObj[curFrame].src = 'img/right/000' + curFrame + '.png';
+			framesRight[curFrame].src = 'img/right/000' + curFrame + '.png';
 		} else {
-			imgObj[curFrame].src = 'img/right/00' + curFrame + '.png';
+			framesRight[curFrame].src = 'img/right/00' + curFrame + '.png';
+		}
+	}
+	for( var curFrame = 1; curFrame <= frameCount; curFrame += 1 ) {
+		framesLeft[curFrame] = new Image();
+		if(curFrame < 10) {
+			framesLeft[curFrame].src = 'img/left/000' + curFrame + '.png';
+		} else {
+			framesLeft[curFrame].src = 'img/left/00' + curFrame + '.png';
 		}
 	}
 	currentFrame = 1;
 	
 	imgBackdrop1 = new Image();
 	imgBackdrop1.src = 'img/backdrop.png';
-	backdropY1 = height - imgBackdrop1.height * 2;
-	
-	imgBackdrop2 = new Image();
-	imgBackdrop2.src = 'img/backdrop.png';
-	backdropY2 = height - imgBackdrop2.height;
+	backdropY1 = height;
+	backdropY2 = 0;
 	
 	imgFloor = new Image();
 	imgFloor.src = 'img/floor.png';
@@ -99,9 +112,27 @@ function init() {
 	rays = [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2];
 	rayWidth = 0.1;
 	rayLength = height * 2;
+	
+	flgDead = false;
+	resetAlpha = 0;
+	deathTextAlpha = 0;
+	facingRight = true;
 }
 
 function reinit() {
+	varLevel = 0;
+	deathTextAlpha = 0;
+	resetAlpha = 1;
+		
+	platforms = [{x:0, y: height - platformHeight * 3, platformwidth:width}];
+	updatePlatforms();
+	
+	flgDead = false;
+	
+	floorY = height * 4 / 6;
+	y = floorY;
+	
+	dy = 0;
 }
 
 function updatePlatforms() {
@@ -116,25 +147,31 @@ function draw() {
 
 	//Draw background
 	ctx.drawImage(imgBackdrop1, 0, backdropY1);
-	ctx.drawImage(imgBackdrop2, 0, backdropY2);
-	
-	
+	ctx.drawImage(imgBackdrop1, 0, backdropY2);
+	////ctx.drawImage(imgBackdrop1, 0, backdropY1);
+	//ctx.drawImage(imgBackdrop1, 0, backdropY2);
 	//Draw the player
 	ctx.fillStyle = "#00A308";
 	ctx.beginPath();
 	//ctx.fillRect(x, y, playerRadius, playerRadius);
 	ctx.closePath();
 	
-	ctx.drawImage(imgObj[Math.round(currentFrame)], x, y, playerRadius, playerRadius);
+	//var frameToDisplay = Math.round(currentFrame / 2) * 2;
+	var frameToDisplay = Math.round(currentFrame);
+	if(facingRight) {
+		ctx.drawImage(framesRight[frameToDisplay], x, y, playerRadius, playerRadius);
+	} else {
+		ctx.drawImage(framesLeft[frameToDisplay], x, y, playerRadius, playerRadius);
+	}
 	
 	//Update animation frame
 	if(currentFrame < frameCount) {
-		currentFrame += 0.15;
+		currentFrame += 0.14;
 		if(currentFrame > frameCount) {
 			currentFrame = frameCount;
 		}
 	}
-	
+
 	//Draw light rays
 	ctx.fillStyle = "rgba(255,255,100,0.1)";
 	for(var currentRay = 0; currentRay < rays.length; currentRay += 1) {
@@ -172,7 +209,12 @@ function draw() {
 	
 	//x += dx;
 	y += dy;
-	
+	if(y > height) {
+		flgDead = true;
+	}
+	if(flgDead) {
+		deathTextAlpha += 0.01;
+	}
 	dy += 0.1;	
 	
 	//If the player goes above 1/2 screen, move all of the pieces down
@@ -188,19 +230,30 @@ function draw() {
 			backdropY2 -= dy / 2;
 			
 			if(backdropY1 > height) {
-				backdropY1 -= imgBackdrop2.height + imgBackdrop1.height;
+				backdropY1 -= height * 2;
 			}
 			if(backdropY2 > height) {
-				backdropY2 -= imgBackdrop1.height + imgBackdrop2.height;
+				backdropY2 -= height * 2;
 			}
-			
 			if(platforms[0].y > height) {
 				platforms.shift();
 				updatePlatforms();
 			}
 		}
 	}
-
+	
+	//Game over text
+	ctx.fillStyle = 'rgba(50,50,50, '+deathTextAlpha+')';
+	ctx.textAlign = 'center';
+	ctx.font = "32px Arial";
+	ctx.fillText("Game Over!", width/2, height/2);
+	ctx.font = "18px Arial";
+	ctx.fillText("Touch to Restart", width/2, height/2 + 64);
+	
+	resetAlpha -= 0.01;
+	ctx.fillStyle = 'rgba(235,235,235, '+resetAlpha+')';	
+	ctx.fillRect(0, 0, width, height);
+	
 	grad = ctx.createLinearGradient(0, 0, 0, 40);
 	grad.addColorStop(0, "#333");
 	grad.addColorStop(1, "#111");
@@ -210,18 +263,33 @@ function draw() {
 	ctx.closePath();
 	ctx.fill();
 	
+	ctx.textAlign = 'left'
 	ctx.fillStyle = "#ddd";
 	ctx.font = "24px Arial";
 	ctx.fillText(varLevel, 15, 35);
 }
 
 function trackPosition(e) {
+	var dx = mouse.x;
 	mouse = getMousePos(canvas, e);
+	dx -= mouse.x;
+	
+	if(dx > 1) {
+		facingRight = false;
+	} else if(dx < -1) {
+		facingRight = true;
+	}
 	x = mouse.x - playerRadius/2;
 }
 function getMousePos(canvas, event) {
 	var rect = canvas.getBoundingClientRect();
 	return {
 		x: event.clientX - rect.left, y: event.clientY - rect.top
+	}
+}
+
+function handleClick(e) {
+	if(flgDead) {
+		reinit();
 	}
 }
